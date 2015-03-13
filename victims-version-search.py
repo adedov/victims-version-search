@@ -82,13 +82,13 @@ class CVE:
 
         for v in self.versions:
             if v.match(component.version):
-                logging.warn("CVE-%s version match component %s to version %s" % (self.cve, component, v))
+                logging.info("CVE-%s version match component %s to version %s" % (self.cve, component, v))
                 version_match = v
                 break
 
         for v in self.fixedin:
             if v.match(component.version):
-                logging.warn("CVE-%ss component %s fixed in %s" % (self.cve, component, v))
+                logging.info("CVE-%ss component %s fixed in %s" % (self.cve, component, v))
                 fixed_match = v
                 break
 
@@ -235,7 +235,7 @@ def read_component_cve(component, con):
     return rv
 
 def process_jar(target):
-    logging.info("Working with " + target)
+    logging.debug("Working with " + target)
     mycomponent = read_maven_info(target)
 
     if mycomponent is None:
@@ -253,7 +253,7 @@ def process_jar(target):
     logging.debug("Component: " + str(mycomponent))
 
     for cve in read_component_cve(mycomponent, con):
-        logging.warn("Candidate: " + str(cve))
+        logging.info("Candidate: " + str(cve))
         cve_match = cve.match(mycomponent)
         if cve_match is not None:
             print "CONFIRMED CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, os.path.basename(target), mycomponent, cve_match, cve.fixedin) 

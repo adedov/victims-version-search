@@ -19,7 +19,7 @@ The utility takes into account affected versions, fixed-in versions with series 
 **Scan Individual File**
 
 ```
-% ./victims-version-search.py --victims-cve-db=../victims-cve-db --loglevel=error ~/jars/commons-fileupload-1.2.2.jar
+% ./victims-version-search.py --victims-cve-db=../victims-cve-db ~/jars/commons-fileupload-1.2.2.jar
 CONFIRMED CVE-2013-0248 ??? commons-fileupload-1.2.2.jar (commons-fileupload:commons-fileupload:1.2.2) version match <=1.2.2,1	FIXED IN [>=1.3,1]
 CONFIRMED CVE-2013-2186 ??? commons-fileupload-1.2.2.jar (commons-fileupload:commons-fileupload:1.2.2) version match <=1.3,1	FIXED IN [>=1.3.1,1]
 CONFIRMED CVE-2014-0050 5.0 commons-fileupload-1.2.2.jar (commons-fileupload:commons-fileupload:1.2.2) version match <=1.3	FIXED IN [>=1.3.1]
@@ -28,7 +28,7 @@ CONFIRMED CVE-2014-0050 5.0 commons-fileupload-1.2.2.jar (commons-fileupload:com
 **Scan Directory**
 
 ```
-% ./victims-version-search.py --victims-cve-db=../victims-cve-db --loglevel=error ~/java/jboss-eap-6.3
+% ./victims-version-search.py --victims-cve-db=../victims-cve-db ~/java/jboss-eap-6.3
 CONFIRMED CVE-2013-5855 5.0 jsf-impl-1.2_15-b01-redhat-11.jar (javax.faces:jsf-impl:1.2_15-b01-redhat-11) version match >=1.2_03,1	FIXED IN []
 CONFIRMED CVE-2013-5855 5.0 jsf-impl-2.1.28.redhat-3.jar (com.sun.faces:jsf-impl:2.1.28.redhat-3) version match <=2.2.5,2	FIXED IN [>=2.2.6]
 ...
@@ -38,6 +38,6 @@ CONFIRMED CVE-2013-5855 5.0 jsf-impl-2.1.28.redhat-3.jar (com.sun.faces:jsf-impl
 
 The --loglevel allows you to add verbosity into the process, e.g. to understand what CVE was considered and why tool decided to include or not include them into report:
 
-- loglevel=error will lead to showing only confirmed CVE-s.
-- loglevel=warn (default) will show CVE candidates and decision factors.
-- loglevel=info and loglevel=debug will add more verbosity about process.
+- loglevel=warn (default) will lead to showing only confirmed CVE-s.
+- loglevel=info will show CVE candidates per jar file and decision factors.
+- loglevel=debug will add more verbosity about process.
