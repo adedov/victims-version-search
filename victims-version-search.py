@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim: set ts=4 sts=4 sw=4 et:
 import json
 import getopt
 import logging
