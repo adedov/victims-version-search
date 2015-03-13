@@ -63,3 +63,8 @@ cve         cvss        groupid            artifactid    version                
 2010-1330   5.0         jline              jline         ["==0.9.93"]                       ""
 2010-1330   5.0         org.jruby.joni     joni          ["==1.0.2"]                        ""
 ```
+
+## Restrictions
+
+- Multiple pom.xml files under META-INF/maven are not taken into account currently (TODO?).
+- Currently unaffected section from victims-cve-db is not used (though it is not used in database too).
