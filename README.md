@@ -11,7 +11,7 @@ The utility takes into account affected versions, fixed-in versions with series 
 
 ## Requirements
 - Python 2.6+
-- (PyYAML)[http://pyyaml.org/]
+- [PyYAML](http://pyyaml.org/)
 - SQLite3 support in Python
 - Local copy of [victims-cve-db](https://github.com/victims/victims-cve-db) database.
 
