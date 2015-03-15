@@ -55,9 +55,13 @@ The --loglevel allows you to add verbosity into the process, e.g. to understand 
 
 **Searchable CVE Database**
 
-The script produces SQLite3 database for all CVE-s from victims-cve-db as an intermediate product. But it might be useful for someone as it allows easily search by both CVE number and artifact name:
+The script produces SQLite3 database for all CVE-s from victims-cve-db as an intermediate product. By default it builds it in memory. But it might be useful for someone as it allows easily search by both CVE number and artifact name. Use --dump-db parameter to make script to dump intermediate database into a file:
 
 ```
+./victims-version-search.py --victims-cve-db=../victims-cve-db --dump-db=cvemap.db ~/java/jboss-eap-6.3
+...
+...
+
 % sqlite3 cvemap.db
 sqlite> select * from cve limit 10;
 cve         cvss        groupid            artifactid    version                            fixedin

@@ -17,6 +17,8 @@ class Config:
     loglevel = "WARN"
     victimsdb = "."
     dirs = []
+    cvemapdb = ":memory:"
+    con = None
 
 config = Config()
 
@@ -97,11 +99,10 @@ class CVE:
 
         return version_match
 
-con = sqlite3.Connection("cvemap.db")
-
 def init_temp_db():
-    con.execute("DROP TABLE IF EXISTS cve")
-    con.execute("""
+    config.con = sqlite3.Connection(config.cvemapdb)
+    config.con.execute("DROP TABLE IF EXISTS cve")
+    config.con.execute("""
     CREATE TABLE cve(
         cve VARCHAR,
         cvss FLOAT,
@@ -112,10 +113,10 @@ def init_temp_db():
     )
     """)
 
-def parse_cve_file(f, con):
+def parse_cve_file(f):
     cve = yaml.load(f)
     
-    cur = con.cursor()
+    cur = config.con.cursor()
     for comp in cve['affected']:
         cveid = cve['cve']
         cvss = cve.get('cvss_v2', None)
@@ -128,14 +129,14 @@ def parse_cve_file(f, con):
             (cveid, cvss, groupid, artid, json.dumps(versions), json.dumps(fixedin)))
     
     # TODO parse notaffected
-    con.commit()
+    config.con.commit()
 
 def parse_victims_db(root):
     for root, dirs, files in os.walk(root):
         for f in files:
             if f.endswith(".yaml"):
                 with file(os.path.join(root, f)) as cve_file:
-                    parse_cve_file(cve_file, con)
+                    parse_cve_file(cve_file)
 
        
 def read_maven_info(jarfile):
@@ -215,8 +216,8 @@ def read_manifest_info(jarfile):
     name = os.path.splitext(os.path.basename(jarfile))[0]
     return Component(None, name, version)
 
-def read_component_cve(component, con):
-    cur = con.cursor()
+def read_component_cve(component):
+    cur = config.con.cursor()
 
     if component.groupid is not None:
         q = "SELECT cve, cvss, version, fixedin FROM cve WHERE groupid = ? AND artifactid = ?"
@@ -252,7 +253,7 @@ def process_jar(target):
 
     logging.debug("Component: " + str(mycomponent))
 
-    for cve in read_component_cve(mycomponent, con):
+    for cve in read_component_cve(mycomponent):
         logging.info("Candidate: " + str(cve))
         cve_match = cve.match(mycomponent)
         if cve_match is not None:
@@ -275,12 +276,12 @@ def parse_options():
     usage = lambda: sys.stderr.write("""The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
-	%(cmd)s [--victims-cve-db=<path>] [--loglevel=<lvl>] <file|dir> ...
+	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] <file|dir> ...
 	
 """ % { "cmd" : sys.argv[0] })
 
     global config
-    opts, args = getopt.getopt(sys.argv[1:], "", ["help", "loglevel=", "victims-cve-db="])
+    opts, args = getopt.getopt(sys.argv[1:], "", ["help", "loglevel=", "victims-cve-db=", "dump-db="])
 
     for o, a in opts:
         if o == "--help":
@@ -290,6 +291,8 @@ Usage:
             config.loglevel = a
         elif o == "--victims-cve-db":
             config.victimsdb = a
+        elif o == "--dump-db":
+            config.cvemapdb = a
 
     if not args:
         raise Exception("File or directory required")
