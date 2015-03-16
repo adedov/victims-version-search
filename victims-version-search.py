@@ -18,6 +18,7 @@ class Config:
     victimsdb = "."
     dirs = []
     cvemapdb = ":memory:"
+    initdb = True
     con = None
 
 config = Config()
@@ -99,8 +100,10 @@ class CVE:
 
         return version_match
 
+def configure_db():
+    config.con = sqlite3.connect(config.cvemapdb)
+
 def init_temp_db():
-    config.con = sqlite3.Connection(config.cvemapdb)
     config.con.execute("DROP TABLE IF EXISTS cve")
     config.con.execute("""
     CREATE TABLE cve(
@@ -273,29 +276,46 @@ def process_jar_files():
         os.path.walk(p, traverse, None)
 
 def parse_options():
-    usage = lambda: sys.stderr.write("""The victims-cve-db scanner based solely on Jar/Package version.
+    usage = """The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
 	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] <file|dir> ...
+	%(cmd)s [cvemapdb=<cvemap.db>] [--loglevel=<lvl>] <file|dir> ...
 	
-""" % { "cmd" : sys.argv[0] })
+""" % { "cmd" : sys.argv[0] }
+
+    def msg_usage_exit(msg = None, code = 0):
+        if msg:
+            sys.stderr.write(msg + "\n\n")
+
+        sys.stderr.write(usage)
+        sys.exit(code)
+
+    try:
+        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db="]
+        opts, args = getopt.getopt(sys.argv[1:], "", supported)
+    except getopt.GetoptError, e:
+        msg_usage_exit("E: " + str(e), 1)
 
     global config
-    opts, args = getopt.getopt(sys.argv[1:], "", ["help", "loglevel=", "victims-cve-db=", "dump-db="])
+    nothing_todo = True
 
     for o, a in opts:
         if o == "--help":
-            usage()
-            sys.exit(0)
+            msg_usage_exit()
         elif o == "--loglevel":
             config.loglevel = a
         elif o == "--victims-cve-db":
             config.victimsdb = a
+        elif o == "--load-db":
+            config.initdb = False
+            config.cvemapdb = a
         elif o == "--dump-db":
+            nothing_todo = False
             config.cvemapdb = a
 
-    if not args:
-        raise Exception("File or directory required")
+    if not args and nothing_todo:
+        msg_usage_exit("E: File or directory required.", 1)
 
     config.dirs = args
 
@@ -312,14 +332,13 @@ def main():
     # init
     parse_options()
     configure_logger()
-    init_temp_db()
-    parse_victims_db(os.path.join(config.victimsdb, "database", "java"))
+    configure_db()
+
+    if config.initdb:
+        init_temp_db()
+        parse_victims_db(os.path.join(config.victimsdb, "database", "java"))
 
     # process target files
     process_jar_files()
 
-#try:
 main()
-#except Exception, e:
-#    print "E: " + str(e)
-#    sys.exit(1)
