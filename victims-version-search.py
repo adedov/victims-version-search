@@ -7,7 +7,6 @@ import os
 import re
 import sqlite3
 import sys
-import yaml
 
 from zipfile import ZipFile
 from xml.etree import ElementTree
@@ -117,6 +116,7 @@ def init_temp_db():
     """)
 
 def parse_cve_file(f):
+    import yaml
     cve = yaml.load(f)
     
     cur = config.con.cursor()
