@@ -20,7 +20,12 @@ class Config:
     initdb = True
     con = None
 
+class Report:
+    total = 0
+    scanned = 0
+
 config = Config()
+report = Report()
 
 class Component:
     def __init__(self, groupid, artid, version):
@@ -90,7 +95,7 @@ class CVE:
 
         for v in self.fixedin:
             if v.match(component.version):
-                logging.info("CVE-%ss component %s fixed in %s" % (self.cve, component, v))
+                logging.info("CVE-%s component %s fixed in %s" % (self.cve, component, v))
                 fixed_match = v
                 break
 
@@ -249,6 +254,7 @@ def read_component_cve(component):
 
 def process_jar(target):
     logging.debug("Working with " + target)
+    report.total += 1
     mycomponent = read_maven_info(target)
 
     if mycomponent is None:
@@ -263,13 +269,14 @@ def process_jar(target):
         logging.debug("Fail to retrive jar version info, ignore")
         return
 
+    report.scanned += 1
     logging.debug("Component: " + str(mycomponent))
 
     for cve in read_component_cve(mycomponent):
         logging.info("Candidate: " + str(cve))
         cve_match = cve.match(mycomponent)
         if cve_match is not None:
-            print "CONFIRMED CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, os.path.basename(target), mycomponent, cve_match, cve.fixedin) 
+            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, os.path.basename(target), mycomponent, cve_match, cve.fixedin) 
 
 def process_jar_files():
     def traverse(_, d, files):
@@ -349,5 +356,9 @@ def main():
 
     # process target files
     process_jar_files()
+
+    print "%d of %d jar files was scanned." % (report.scanned, report.total)
+    if report.total != report.scanned:
+        print "%d jar files do not contain any reliable version information." % (report.total - report.scanned,)
 
 main()
