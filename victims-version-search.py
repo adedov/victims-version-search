@@ -211,9 +211,9 @@ def read_filename_info(jarfile):
 
 def read_manifest_info(jarfile):
     jar = ZipFile(jarfile)
-    manifest = jar.open("META-INF/MANIFEST.MF")
-
-    if not manifest:
+    try:
+        manifest = jar.open("META-INF/MANIFEST.MF")
+    except:
         return None
 
     version = None
