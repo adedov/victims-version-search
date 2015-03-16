@@ -78,6 +78,12 @@ cve         cvss        groupid            artifactid    version                
 2010-1330   5.0         org.jruby.joni     joni          ["==1.0.2"]                        ""
 ```
 
+Also, you can skip parsing of victims-cve-db by loading SQLite dump with --load-db option. This may be useful if you run script on several remote machines, so the transfer of a script and a single database file is only required:
+
+```
+./victims-version-search.py --load-db=cvemap.db ~/java/jboss-eap-6.3
+```
+
 ## Restrictions
 
 - Multiple pom.xml files under META-INF/maven are not taken into account currently (TODO?).
