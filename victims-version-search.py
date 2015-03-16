@@ -167,8 +167,17 @@ def read_maven_info(jarfile):
     # Iterative parsing is required. Usual parser may be broken by pom files with multiple colons in tag names, like 
     # <pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>1.8</pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>
     itparse = ElementTree.iterparse(pomxml, events = ("start",))
-    _, proj = next(itparse)
-    assert(proj.tag == ns("project"))
+    proj = None
+
+    for _, tag in itparse:
+        if tag.tag == ns("project"):
+            proj = tag
+            break
+
+    if proj is None:
+        logging.debug("pom.xml without <project> tag, ignore")
+        return None
+
     root = proj.getchildren()
     state = ParseState()
 
