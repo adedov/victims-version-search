@@ -17,6 +17,17 @@ The utility takes into account affected versions, fixed-in versions with series 
 
 ## Usage
 
+### Search by Artifact
+
+You can use artifact specification in form of groupId:artifactId:version for searching whole CVE database:
+
+```
+% ./victims-version-search.py --victims-cve-db=../victims-cve-db commons-fileupload:commons-fileupload:1.2.2
+CVE-2013-0248 ??? commons-fileupload:commons-fileupload:1.2.2 (commons-fileupload:commons-fileupload:1.2.2) version match <=1.2.2,1	FIXED IN [>=1.3,1]
+CVE-2013-2186 ??? commons-fileupload:commons-fileupload:1.2.2 (commons-fileupload:commons-fileupload:1.2.2) version match <=1.3,1	FIXED IN [>=1.3.1,1]
+CVE-2014-0050 5.0 commons-fileupload:commons-fileupload:1.2.2 (commons-fileupload:commons-fileupload:1.2.2) version match <=1.3	FIXED IN [>=1.3.1]
+```
+
 ### Scan Individual File
 
 ```

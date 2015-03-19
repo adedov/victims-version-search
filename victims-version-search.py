@@ -16,6 +16,7 @@ class Config:
     loglevel = "WARN"
     victimsdb = "."
     dirs = []
+    artifacts = []
     cvemapdb = ":memory:"
     initdb = True
     con = None
@@ -252,6 +253,16 @@ def read_component_cve(component):
 
     return rv
 
+def process_component(component, target):
+    logging.debug("Component: " + str(component))
+
+    for cve in read_component_cve(component):
+        logging.info("Candidate: " + str(cve))
+        cve_match = cve.match(component)
+        if cve_match is not None:
+            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, target, component, cve_match, cve.fixedin) 
+
+
 def process_jar(target):
     logging.debug("Working with " + target)
     report.total += 1
@@ -270,13 +281,12 @@ def process_jar(target):
         return
 
     report.scanned += 1
-    logging.debug("Component: " + str(mycomponent))
+    process_component(mycomponent, os.path.basename(target))
 
-    for cve in read_component_cve(mycomponent):
-        logging.info("Candidate: " + str(cve))
-        cve_match = cve.match(mycomponent)
-        if cve_match is not None:
-            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, os.path.basename(target), mycomponent, cve_match, cve.fixedin) 
+def process_artifacts():
+    for art in config.artifacts:
+        groupid, artid, ver = art.split(":")
+        process_component(Component(groupid, artid, ver), art)
 
 def process_jar_files():
     def traverse(_, d, files):
@@ -295,9 +305,12 @@ def parse_options():
     usage = """The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
-	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] <file|dir> ...
-	%(cmd)s --load-db=<cvemap.db> [--loglevel=<lvl>] <file|dir> ...
+	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] <file|dir|artifact> ...
+	%(cmd)s --load-db=<cvemap.db> [--loglevel=<lvl>] <file|dir|artifact> ...
 	
+Where:
+    artifact : groupId:artifactId:version
+
 """ % { "cmd" : sys.argv[0] }
 
     def msg_usage_exit(msg = None, code = 0):
@@ -333,7 +346,11 @@ Usage:
     if not args and nothing_todo:
         msg_usage_exit("E: File or directory required.", 1)
 
-    config.dirs = args
+    for x in args:
+        if x.count(":") == 2:
+            config.artifacts.append(x)
+        else:
+            config.dirs.append(x)
 
 def configure_logger():
     logging.basicConfig(
@@ -354,7 +371,7 @@ def main():
         init_temp_db()
         parse_victims_db(os.path.join(config.victimsdb, "database", "java"))
 
-    # process target files
+    process_artifacts()
     process_jar_files()
 
     print "%d of %d jar files was scanned." % (report.scanned, report.total)
