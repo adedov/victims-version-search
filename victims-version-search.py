@@ -20,6 +20,7 @@ class Config:
     cvemapdb = ":memory:"
     initdb = True
     con = None
+    show_full_path = False
 
 class Report:
     total = 0
@@ -281,7 +282,9 @@ def process_jar(target):
         return
 
     report.scanned += 1
-    process_component(mycomponent, os.path.basename(target))
+    if not config.show_full_path:
+        target = os.path.basename(target)
+    process_component(mycomponent, target)
 
 def process_artifacts():
     for art in config.artifacts:
@@ -305,8 +308,8 @@ def parse_options():
     usage = """The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
-	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] <file|dir|artifact> ...
-	%(cmd)s --load-db=<cvemap.db> [--loglevel=<lvl>] <file|dir|artifact> ...
+	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
+	%(cmd)s --load-db=<cvemap.db> [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
 	
 Where:
     artifact : groupId:artifactId:version
@@ -321,7 +324,7 @@ Where:
         sys.exit(code)
 
     try:
-        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db="]
+        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path"]
         opts, args = getopt.getopt(sys.argv[1:], "", supported)
     except getopt.GetoptError, e:
         msg_usage_exit("E: " + str(e), 1)
@@ -342,6 +345,8 @@ Where:
         elif o == "--dump-db":
             nothing_todo = False
             config.cvemapdb = a
+        elif o == "--full-path":
+            config.show_full_path = True
 
     if not args and nothing_todo:
         msg_usage_exit("E: File or directory required.", 1)
