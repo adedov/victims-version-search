@@ -8,6 +8,7 @@ import re
 import sqlite3
 import sys
 
+from io import BytesIO
 from zipfile import ZipFile
 from xml.etree import ElementTree
 from distutils.version import LooseVersion
@@ -150,6 +151,21 @@ def parse_victims_db(root):
 
        
 def read_maven_info(jarfile):
+    class ParseState:
+        def __init__(self):
+            self.groupid = None
+            self.artid = None
+            self.version = None
+
+    def cleanse_unicode(inp):
+        # delete all Unicode regardless of good or broken
+        t = "".join([ chr(x) for x in xrange(128) ]) + "?"*128
+        return BytesIO(inp.read().translate(t))
+
+    def tag_comp(tag, name):
+        ns = lambda s: "{http://maven.apache.org/POM/4.0.0}" + s
+        return tag.tag == ns(name) or tag.tag == name
+
     jar = ZipFile(jarfile)
     pomlist = [ x for x in jar.namelist() if x.startswith("META-INF/maven") and x.endswith("/pom.xml") ]
     
@@ -162,22 +178,15 @@ def read_maven_info(jarfile):
         return None
 
     pomname = pomlist[0]
-    pomxml = jar.open(pomname)
-    ns = lambda s: "{http://maven.apache.org/POM/4.0.0}" + s
+    pomxml = cleanse_unicode(jar.open(pomname))
     
-    class ParseState:
-        def __init__(self):
-            self.groupid = None
-            self.artid = None
-            self.version = None
-
     # Iterative parsing is required. Usual parser may be broken by pom files with multiple colons in tag names, like 
     # <pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>1.8</pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>
     itparse = ElementTree.iterparse(pomxml, events = ("start",))
     proj = None
 
     for _, tag in itparse:
-        if tag.tag == ns("project"):
+        if tag_comp(tag, "project"):
             proj = tag
             break
 
@@ -190,15 +199,15 @@ def read_maven_info(jarfile):
 
     def search_artifact(nodes):
         for tag in nodes:
-            if tag.tag == ns("groupId"):
+            if tag_comp(tag, "groupId"):
                 state.groupid = tag.text
-            if tag.tag == ns("artifactId"):
+            if tag_comp(tag, "artifactId"):
                 state.artid = tag.text
-            if tag.tag == ns("version"):
+            if tag_comp(tag, "version"):
                 state.version = tag.text
 
     for tag in root:
-        if tag.tag == ns("parent"):
+        if tag_comp(tag, "parent"):
             search_artifact(tag.getchildren())
 
     search_artifact(root)
