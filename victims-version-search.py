@@ -22,6 +22,7 @@ class Config:
     initdb = True
     con = None
     show_full_path = False
+    ignore_errors = False
 
 class Report:
     total = 0
@@ -276,24 +277,34 @@ def process_component(component, target):
 def process_jar(target):
     logging.debug("Working with " + target)
     report.total += 1
-    mycomponent = read_maven_info(target)
 
-    if mycomponent is None:
-        logging.debug("Not maven component, try parse filename")
-        mycomponent = read_filename_info(target)
+    try:
+        mycomponent = read_maven_info(target)
 
-    if mycomponent is None:
-        logging.debug("Filename does not contain version")
-        mycomponent = read_manifest_info(target)
-    
-    if mycomponent is None:
-        logging.debug("Fail to retrive jar version info, ignore")
-        return
+        if mycomponent is None:
+            logging.debug("Not maven component, try parse filename")
+            mycomponent = read_filename_info(target)
 
-    report.scanned += 1
-    if not config.show_full_path:
-        target = os.path.basename(target)
-    process_component(mycomponent, target)
+        if mycomponent is None:
+            logging.debug("Filename does not contain version")
+            mycomponent = read_manifest_info(target)
+        
+        if mycomponent is None:
+            logging.debug("Fail to retrive jar version info, ignore")
+            return
+
+        if not config.show_full_path:
+            target = os.path.basename(target)
+        process_component(mycomponent, target)
+        report.scanned += 1
+
+    except Exception, e:
+        if config.ignore_errors:
+            logging.warn("Error during processing %s: %s" % (target, str(e)))
+            return
+        else:
+            raise e
+
 
 def process_artifacts():
     for art in config.artifacts:
@@ -317,8 +328,8 @@ def parse_options():
     usage = """The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
-	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
-	%(cmd)s --load-db=<cvemap.db> [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
+	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--ignore-errors] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
+	%(cmd)s --load-db=<cvemap.db> [--ignore-errors] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
 	
 Where:
     artifact : groupId:artifactId:version
@@ -333,7 +344,7 @@ Where:
         sys.exit(code)
 
     try:
-        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path"]
+        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path", "ignore-errors"]
         opts, args = getopt.getopt(sys.argv[1:], "", supported)
     except getopt.GetoptError, e:
         msg_usage_exit("E: " + str(e), 1)
@@ -356,6 +367,8 @@ Where:
             config.cvemapdb = a
         elif o == "--full-path":
             config.show_full_path = True
+        elif o == "--ignore-errors":
+            config.ignore_errors = True
 
     if not args and nothing_todo:
         msg_usage_exit("E: File or directory required.", 1)
