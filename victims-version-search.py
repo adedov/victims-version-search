@@ -328,13 +328,25 @@ def parse_options():
     usage = """The victims-cve-db scanner based solely on Jar/Package version.
 Usage:
 	%(cmd)s --help
-	%(cmd)s [--victims-cve-db=<path>] [--dump-db=<cvemap.db>] [--ignore-errors] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
-	%(cmd)s --load-db=<cvemap.db> [--ignore-errors] [--loglevel=<lvl>] [--full-path] <file|dir|artifact> ...
+	%(cmd)s [options] <file|dir|artifact> ...
 	
 Where:
     artifact : groupId:artifactId:version
 
-""" % { "cmd" : sys.argv[0] }
+Options:
+    --victims-cve-db=path   Path to clone of victims-cve-db repo (default is current dir).
+
+    --dump-db=file.db       Dump victims-cve-db into SQLite representation.
+
+    --load-db=file.db       Load victims-cve-db from SQLite rather than from repo.
+
+    --ignore-errors         Ignore errors during parsing individual jar files.
+
+    --loglevel              Verbosity level: debug | info | warn
+
+    --full-path             Show jar file's full path in report.
+
+""" % { "cmd" : os.path.basename(sys.argv[0]) }
 
     def msg_usage_exit(msg = None, code = 0):
         if msg:
