@@ -12,6 +12,7 @@ from io import BytesIO
 from zipfile import ZipFile
 from xml.etree import ElementTree
 from distutils.version import LooseVersion
+from collections import OrderedDict
 
 class Config:
     loglevel = "WARN"
@@ -21,12 +22,52 @@ class Config:
     cvemapdb = ":memory:"
     initdb = True
     con = None
-    show_full_path = False
     ignore_errors = False
+    show_full_path = False
+    report_json = False
 
 class Report:
-    total = 0
-    scanned = 0
+    def __init__(self):
+        self.issues = []
+        self.total = 0
+        self.scanned = 0
+
+    def add_cve(self, path, cve, component, cve_match):
+        class ComponentCVE:
+            pass
+
+        issue = ComponentCVE()
+        issue.path = path
+        issue.cve = cve
+        issue.component = component
+        issue.cve_match = cve_match
+        self.issues.append(issue)
+
+    def show(self):
+        for issue in self.issues:
+            cve = issue.cve
+            target = issue.path if config.show_full_path else os.path.basename(issue.path)
+            component = issue.component
+            cve_match = issue.cve_match
+            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, target, component, cve_match, cve.fixedin)
+
+        print "%d of %d jar files was scanned." % (self.scanned, self.total)
+        if self.total != self.scanned:
+            print "%d jar files do not contain any reliable version information." % (self.total - self.scanned,)
+
+    def to_json(self):
+        rep_issues = []
+        for issue in self.issues:
+            rep_issues.append(OrderedDict([
+                ("file",    issue.path),
+                ("cve",     issue.cve.cve),
+                ("cvss",    issue.cve.cvss),
+                ("match",   repr(issue.cve_match)),
+                ("affected",    [ repr(x) for x in issue.cve.versions ]),
+                ("fixedin",     [ repr(x) for x in issue.cve.fixedin ])
+                ]))
+
+        return json.dumps(rep_issues, indent=4)
 
 config = Config()
 report = Report()
@@ -271,8 +312,7 @@ def process_component(component, target):
         logging.info("Candidate: " + str(cve))
         cve_match = cve.match(component)
         if cve_match is not None:
-            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, target, component, cve_match, cve.fixedin) 
-
+            report.add_cve(target, cve, component, cve_match)
 
 def process_jar(target):
     logging.debug("Working with " + target)
@@ -293,7 +333,6 @@ def process_jar(target):
             logging.debug("Fail to retrive jar version info, ignore")
             return
 
-        if not config.show_full_path:
             target = os.path.basename(target)
         process_component(mycomponent, target)
         report.scanned += 1
@@ -346,6 +385,8 @@ Options:
 
     --full-path             Show jar file's full path in report.
 
+    --json                  Print report in form of JSON.
+
 """ % { "cmd" : os.path.basename(sys.argv[0]) }
 
     def msg_usage_exit(msg = None, code = 0):
@@ -356,7 +397,7 @@ Options:
         sys.exit(code)
 
     try:
-        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path", "ignore-errors"]
+        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path", "json", "ignore-errors"]
         opts, args = getopt.getopt(sys.argv[1:], "", supported)
     except getopt.GetoptError, e:
         msg_usage_exit("E: " + str(e), 1)
@@ -379,6 +420,8 @@ Options:
             config.cvemapdb = a
         elif o == "--full-path":
             config.show_full_path = True
+        elif o == "--json":
+            config.report_json = True
         elif o == "--ignore-errors":
             config.ignore_errors = True
 
@@ -400,8 +443,7 @@ def configure_logger():
 #
 # Main
 #
-def main():
-    # init
+if __name__ == "__main__":
     parse_options()
     configure_logger()
     configure_db()
@@ -413,8 +455,7 @@ def main():
     process_artifacts()
     process_jar_files()
 
-    print "%d of %d jar files was scanned." % (report.scanned, report.total)
-    if report.total != report.scanned:
-        print "%d jar files do not contain any reliable version information." % (report.total - report.scanned,)
-
-main()
+    if config.report_json:
+        print report.to_json()
+    else:
+        report.show()
