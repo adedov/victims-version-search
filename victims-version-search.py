@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # vim: set ts=4 sts=4 sw=4 et:
+import hashlib
 import json
 import getopt
 import logging
@@ -37,11 +38,23 @@ class Report:
             pass
 
         issue = ComponentCVE()
+        self.issues.append(issue)
+
         issue.path = path
         issue.cve = cve
         issue.component = component
         issue.cve_match = cve_match
-        self.issues.append(issue)
+
+        if path == repr(component):
+            issue.sha1 = "unknown"
+        else:
+            with file(path, "rb") as f:
+                h = hashlib.sha1()
+                while True:
+                    b = f.read(2**10)
+                    if not b: break
+                    h.update(b)
+                issue.sha1 = h.hexdigest()[:7]
 
     def show(self):
         for issue in self.issues:
@@ -49,7 +62,7 @@ class Report:
             target = issue.path if config.show_full_path else os.path.basename(issue.path)
             component = issue.component
             cve_match = issue.cve_match
-            print "CVE-%s %s %s (%s) version match %s\tFIXED IN %s" % (cve.cve, cve.cvss, target, component, cve_match, cve.fixedin)
+            print "CVE-%s %s (%s) sha1:%s %s" % (cve.cve, cve.cvss, component, issue.sha1, target)
 
         print "%d of %d jar files was scanned." % (self.scanned, self.total)
         if self.total != self.scanned:
@@ -60,6 +73,7 @@ class Report:
         for issue in self.issues:
             rep_issues.append(OrderedDict([
                 ("file",    issue.path),
+                ("sha1",    issue.sha1),
                 ("cve",     issue.cve.cve),
                 ("cvss",    issue.cve.cvss),
                 ("match",   repr(issue.cve_match)),
