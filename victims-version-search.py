@@ -74,6 +74,7 @@ class Report:
             rep_issues.append(OrderedDict([
                 ("file",    issue.path),
                 ("sha1",    issue.sha1),
+                ("component", repr(issue.component)),
                 ("cve",     issue.cve.cve),
                 ("cvss",    issue.cve.cvss),
                 ("match",   repr(issue.cve_match)),
