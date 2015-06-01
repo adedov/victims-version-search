@@ -71,18 +71,24 @@ class Report:
     def to_json(self):
         rep_issues = []
         for issue in self.issues:
-            rep_issues.append(OrderedDict([
-                ("file",    issue.path),
-                ("sha1",    issue.sha1),
-                ("component", repr(issue.component)),
-                ("cve",     issue.cve.cve),
-                ("cvss",    issue.cve.cvss),
-                ("match",   repr(issue.cve_match)),
-                ("affected",    [ repr(x) for x in issue.cve.versions ]),
-                ("fixedin",     [ repr(x) for x in issue.cve.fixedin ])
-                ]))
+            rep_issues.append({
+                "file" :    issue.path,
+                "sha1" :    issue.sha1,
+                "component" : repr(issue.component),
+                "cve" :     issue.cve.cve,
+                "cvss" :    issue.cve.cvss
+            })
 
-        return json.dumps(rep_issues, indent=4)
+        report = {
+            "stats" : {
+                "total_jars" : self.total,
+                "scanned_jars" : self.scanned
+            },
+
+            "issues" : rep_issues
+        }
+
+        return json.dumps(report, indent=4, sort_keys=True)
 
 config = Config()
 report = Report()
