@@ -13,7 +13,6 @@ from io import BytesIO
 from zipfile import ZipFile
 from xml.etree import ElementTree
 from distutils.version import LooseVersion
-from collections import OrderedDict
 
 class Config:
     loglevel = "WARN"
