@@ -101,7 +101,7 @@ class Component:
 
     def __repr__(self):
         return "%s:%s:%s" % (self.groupid, self.artifactid, self.__version)
- 
+
 class VersionMatch:
     VERSION_RE = re.compile("^(?P<condition>[><=]=)(?P<version>[^, ]+)(?:,(?P<series>[^, ]+)){0,1}$")
 
@@ -118,22 +118,22 @@ class VersionMatch:
         v = VersionMatch.VERSION_RE.match(version)
         if not v:
             raise Exception("Incorrect version '%s'" % version)
-            
+
         self.condition = v.group("condition")
         self.version = LooseVersion(v.group("version"))
         self.series = v.group("series")
         self.__repr = version
-    
+
     def match(self, cver):
         if self.series is not None:
             if not str(cver).startswith(self.series):
                 return None
 
         return VersionMatch.COND_MAP[self.condition](cver, self.version)
-    
+
     def __repr__(self):
         return self.__repr
-    
+
 class CVE:
     def __init__(self, cve, cvss, component, versions, fixedin):
         self.cve = cve
@@ -143,10 +143,10 @@ class CVE:
         self.component = component
         self.versions = [ VersionMatch(v) for v in versions ]
         self.fixedin = [ VersionMatch(v) for v in fixedin ]
-    
+
     def __repr__(self):
         return "CVE-%s %s component %s FOUND IN %s FIXED IN %s" % (self.cve, self.cvss, self.component, self.versions, self.fixedin)
-    
+
     def match(self, component):
         # TODO match notaffected
         version_match = None
@@ -188,7 +188,7 @@ def init_temp_db():
 def parse_cve_file(f):
     import yaml
     cve = yaml.load(f)
-    
+
     cur = config.con.cursor()
     for comp in cve['affected']:
         cveid = cve['cve']
@@ -197,10 +197,10 @@ def parse_cve_file(f):
         artid = comp['artifactId']
         versions = comp['version']
         fixedin = comp.get('fixedin', "")
-                
+
         cur.execute("INSERT INTO cve (cve, cvss, groupid, artifactid, version, fixedin) VALUES (?, ?, ?, ?, ?, ?)",
             (cveid, cvss, groupid, artid, json.dumps(versions), json.dumps(fixedin)))
-    
+
     # TODO parse notaffected
     config.con.commit()
 
@@ -211,7 +211,6 @@ def parse_victims_db(root):
                 with file(os.path.join(root, f)) as cve_file:
                     parse_cve_file(cve_file)
 
-       
 def read_maven_info(jarfile):
     class ParseState:
         def __init__(self):
@@ -230,7 +229,7 @@ def read_maven_info(jarfile):
 
     jar = ZipFile(jarfile)
     pomlist = [ x for x in jar.namelist() if x.startswith("META-INF/maven") and x.endswith("/pom.xml") ]
-    
+
     if not len(pomlist):
         # Not maven componet
         return None
@@ -241,7 +240,7 @@ def read_maven_info(jarfile):
 
     pomname = pomlist[0]
     pomxml = cleanse_unicode(jar.open(pomname))
-    
+
     # Iterative parsing is required. Usual parser may be broken by pom files with multiple colons in tag names, like 
     # <pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>1.8</pluginVersion:org.codehaus.mojo:build-helper-maven-plugin>
     itparse = ElementTree.iterparse(pomxml, events = ("start",))
@@ -318,7 +317,7 @@ def read_component_cve(component):
         rs = cur.execute(q, (component.artifactid,))
 
     rv = []
-    
+
     component_name = "%s:%s" % (component.groupid, component.artifactid)
     for x in rs.fetchall():
         rv.append(CVE(x[0], x[1], component_name, json.loads(x[2]), json.loads(x[3])))
@@ -348,7 +347,7 @@ def process_jar(target):
         if mycomponent is None:
             logging.debug("Filename does not contain version")
             mycomponent = read_manifest_info(target)
-        
+
         if mycomponent is None:
             logging.debug("Fail to retrive jar version info, ignore")
             return
@@ -388,7 +387,7 @@ def parse_options():
 Usage:
 	%(cmd)s --help
 	%(cmd)s [options] <file|dir|artifact> ...
-	
+
 Where:
     artifact : groupId:artifactId:version
 
