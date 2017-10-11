@@ -25,6 +25,7 @@ class Config:
     ignore_errors = False
     show_full_path = False
     report_json = False
+    verbose = False
 
 class Report:
     def __init__(self):
@@ -63,7 +64,8 @@ class Report:
             cve_match = issue.cve_match
             print "CVE-%s %s (%s) sha1:%s %s" % (cve.cve, cve.cvss, component, issue.sha1, target)
 
-        print "%d of %d jar files was scanned." % (self.scanned, self.total)
+        if config.verbose:
+            print "%d of %d jar files was scanned." % (self.scanned, self.total)
         if self.total != self.scanned:
             print "%d jar files do not contain any reliable version information." % (self.total - self.scanned,)
 
@@ -406,6 +408,8 @@ Options:
 
     --json                  Print report in form of JSON.
 
+    --verbose               Prints additional information along the way.
+
 """ % { "cmd" : os.path.basename(sys.argv[0]) }
 
     def msg_usage_exit(msg = None, code = 0):
@@ -416,7 +420,7 @@ Options:
         sys.exit(code)
 
     try:
-        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path", "json", "ignore-errors"]
+        supported = ["help", "loglevel=", "victims-cve-db=", "load-db=", "dump-db=", "full-path", "json", "ignore-errors", "verbose"]
         opts, args = getopt.getopt(sys.argv[1:], "", supported)
     except getopt.GetoptError, e:
         msg_usage_exit("E: " + str(e), 1)
@@ -443,6 +447,8 @@ Options:
             config.report_json = True
         elif o == "--ignore-errors":
             config.ignore_errors = True
+        elif o == "--verbose":
+            config.verbose = True
 
     if not args and nothing_todo:
         msg_usage_exit("E: File or directory required.", 1)
