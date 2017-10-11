@@ -66,8 +66,8 @@ class Report:
 
         if config.verbose:
             print "%d of %d jar files was scanned." % (self.scanned, self.total)
-        if self.total != self.scanned:
-            print "%d jar files do not contain any reliable version information." % (self.total - self.scanned,)
+            if self.total != self.scanned:
+                print "%d jar files do not contain any reliable version information." % (self.total - self.scanned,)
 
     def to_json(self):
         rep_issues = []
